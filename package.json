@@ -1,0 +1,39 @@
+{
+  "name": "la-mar-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API de La Mar: autenticación del panel de administración y CRUD del catálogo de artículos.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed:admin": "node scripts/createAdmin.js",
+    "images:check": "node scripts/checkImages.js",
+    "images:optimize": "node scripts/optimizeImages.js",
+    "lint": "eslint src scripts"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^8.2.0",
+    "bcrypt": "^6.0.0",
+    "celebrate": "^16.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.0",
+    "multer": "^2.0.0",
+    "sharp": "^0.35.5",
+    "validator": "^13.15.35",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "nodemon": "^3.1.7"
+  }
+}
