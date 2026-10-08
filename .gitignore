@@ -6,6 +6,13 @@ node_modules/
 .env.*
 !.env.example
 
+# Archivos .md
+ADMIN.md
+ADMIN-SERVIDOR.md
+ESTADO.md
+CONTEXTO.md
+image-context.md
+
 # Logs
 logs/
 *.log
