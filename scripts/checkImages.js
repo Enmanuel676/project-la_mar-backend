@@ -1,5 +1,5 @@
-/* eslint-disable no-console -- script de terminal: el resultado se lee en pantalla, también en
-   producción, donde el logger no escribe en la consola. */
+// Script de terminal: el resultado se lee en pantalla con console.log, también en producción,
+// donde el logger no escribe en la consola (.eslintrc permite console en scripts/).
 const crypto = require('crypto');
 const env = require('../src/config/env');
 const { getBucket } = require('../src/config/storage');
@@ -24,7 +24,6 @@ function fail(text, hint) {
 // explica el fallo en vez de cortarse con la traza.
 async function checkSharp() {
   try {
-    // eslint-disable-next-line global-require
     const sharp = require('sharp');
     const image = await sharp({
       create: {

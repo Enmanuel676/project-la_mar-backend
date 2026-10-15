@@ -13,21 +13,19 @@ async function purgeTrash() {
     const limit = new Date(Date.now() - env.trashRetentionDays * DAY_MS);
     const expired = await Article.find({ deletedAt: { $ne: null, $lt: limit } });
 
-    // Uno por uno: si una imagen falla, los demás artículos se purgan igual.
-    // eslint-disable-next-line no-restricted-syntax
-    for (const article of expired) {
+    // Uno por uno (cada uno espera al anterior en la cadena de promesas): si una imagen
+    // falla, los demás artículos se purgan igual.
+    await expired.reduce((chain, article) => chain.then(async () => {
       try {
         // Primero la imagen y luego el documento: si el bucket falla, el artículo se
         // queda en la papelera y se reintenta mañana. Al revés, la foto quedaría huérfana.
-        // eslint-disable-next-line no-await-in-loop
         await deleteImage(article.imagePath);
-        // eslint-disable-next-line no-await-in-loop
         await article.deleteOne();
         logger.info(`Papelera: artículo ${article.id} eliminado definitivamente`);
       } catch (err) {
         logger.error(`Papelera: no se pudo purgar ${article.id}: ${err.message}`);
       }
-    }
+    }), Promise.resolve());
   } catch (err) {
     // Este trabajo corre solo y nadie lo ve: un fallo aquí nunca debe tumbar el servidor.
     logger.error(`Papelera: falló la purga: ${err.message}`);

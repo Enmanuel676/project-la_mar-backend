@@ -37,8 +37,7 @@ function translate(err) {
 }
 
 // Express reconoce un manejador de errores por sus cuatro parámetros: hay que dejar `next`
-// aunque no se use.
-// eslint-disable-next-line no-unused-vars
+// aunque no se use (.eslintrc lo permite con argsIgnorePattern).
 module.exports = (err, req, res, next) => {
   const known = translate(err);
 
