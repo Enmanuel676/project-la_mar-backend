@@ -1,0 +1,44 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "extends": "airbnb-base",
+  "parserOptions": {
+    "ecmaVersion": 2022
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "scripts/node_modules/",
+    "logs/"
+  ],
+  "rules": {
+    "no-underscore-dangle": [
+      "error",
+      {
+        "allow": [
+          "_id",
+          "__v"
+        ]
+      }
+    ],
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^next$"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "scripts/**/*.js"
+      ],
+      "rules": {
+        "no-console": "off",
+        "global-require": "off"
+      }
+    }
+  ]
+}
