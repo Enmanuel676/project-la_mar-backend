@@ -1,5 +1,8 @@
 # Backend · La Mar
 
+**API en producción:** `https://api.lamarjoyeria.mooo.com/api` (por HTTPS). Prueba pública:
+<https://api.lamarjoyeria.mooo.com/api/public/articles>
+
 API de la joyería La Mar. Da servicio a dos sitios web:
 
 1. **Sitio público** (`project-la_mar-frontend`): solo lee el catálogo con `GET /api/public/articles`.
@@ -53,7 +56,9 @@ carpeta lances el comando.
 
 ### Administrador
 
-`npm run seed:admin` lee `ADMIN_EMAIL` y `ADMIN_PASSWORD` del `.env`. Sin ellos usa
+No hay registro público (`POST /signup`) a propósito: las cuentas se crean desde la terminal.
+`npm run seed:admin` lee `ADMIN_EMAIL`, `ADMIN_NAME` y `ADMIN_PASSWORD` (8 a 128 caracteres) del `.env`
+o de la propia línea de comandos. Sin ellos usa
 `admin@lamar.com` / `lamar2026`, que **solo sirve para local**: con `NODE_ENV=production` el
 script se niega a usar esa contraseña.
 
@@ -143,7 +148,9 @@ el documento y dejaría la foto huérfana.
 ## CORS
 
 - `/api/auth` y `/api/articles` solo aceptan los orígenes de `ALLOWED_ORIGINS` (separados por
-  coma). Añade ahí el dominio del panel cuando lo despliegues.
+  coma). Añade ahí el dominio del panel cuando lo despliegues. En desarrollo
+  (`NODE_ENV` distinto de `production`) se acepta además cualquier `http://localhost:<puerto>`,
+  así el panel funciona aunque Vite lo abra en el 5174 o en otro puerto.
 - `/api/public` acepta cualquier origen, pero solo `GET`.
 
 ## Registros
