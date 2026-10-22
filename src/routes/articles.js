@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const auth = require('../middlewares/auth');
+const attachUser = require('../middlewares/attachUser');
 const upload = require('../middlewares/upload');
 const {
   validateArticle,
@@ -17,7 +18,9 @@ const {
 } = require('../controllers/articles');
 
 // Todo lo de este archivo es del panel de administración.
+// attachUser carga el usuario completo para que los controladores sepan si es admin.
 router.use(auth);
+router.use(attachUser);
 
 router.get('/', getArticles);
 router.get('/deleted', getDeletedArticles);

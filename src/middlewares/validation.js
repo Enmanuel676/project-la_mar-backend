@@ -40,6 +40,24 @@ const validateLogin = validate({
   }),
 });
 
+// Validación para el registro de nuevos usuarios.
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
+
+const validateRegister = validate({
+  [Segments.BODY]: Joi.object().keys({
+    firstName: Joi.string().trim().min(1).max(50)
+      .required()
+      .label('nombre'),
+    lastName: Joi.string().trim().min(1).max(50)
+      .required()
+      .label('apellido'),
+    email: Joi.string().required().custom(isEmail).label('correo'),
+    password: Joi.string().required().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH)
+      .label('contraseña'),
+  }),
+});
+
 const idParam = Joi.object().keys({
   id: Joi.string().required().custom(isMongoId),
 });
@@ -100,6 +118,7 @@ const validateArticleUpdate = validate({
 
 module.exports = {
   validateLogin,
+  validateRegister,
   validateArticle,
   validateArticleId,
   validateArticleUpdate,

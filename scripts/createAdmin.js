@@ -6,19 +6,18 @@ const connectDb = require('../src/config/db');
 const User = require('../src/models/user');
 
 /* ==================================================================
- * REGISTRO DE USUARIOS (ADMINISTRADORES)
+ * CREACIÓN DE ADMINISTRADOR INICIAL
  * ------------------------------------------------------------------
- * La API no tiene ruta pública de registro (POST /signup) a propósito: el
- * panel gestiona el catálogo real de la tienda, y un registro abierto
- * dejaría a cualquiera publicar en él. Las cuentas se crean a mano, desde
- * la terminal del servidor, con este script:
+ * Este script crea el primer administrador o restablece su contraseña.
+ * Se usa en entornos sin interfaz gráfica (producción sin panel).
  *
  *   ADMIN_EMAIL="correo@ejemplo.com" ADMIN_NAME="Nombre" \
  *   ADMIN_PASSWORD="contraseña-de-8-o-más" npm run seed:admin
  *
  * - Si el correo no existe, crea la cuenta (contraseña guardada con bcrypt).
  * - Si ya existe, actualiza su nombre y su contraseña.
- * Después, la cuenta entra en el panel con POST /api/auth/login.
+ *
+ * En desarrollo, usa el panel para registrar administradores (POST /auth/register o /api/signup).
  * ================================================================== */
 
 // Valores por defecto solo para probar en local; coinciden con los del panel con datos de prueba.

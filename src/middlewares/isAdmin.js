@@ -24,8 +24,8 @@ module.exports = async (req, res, next) => {
 
     // Guardar el usuario completo en req para usarlo en los controladores
     req.adminUser = user;
-    next();
+    return next();
   } catch (err) {
-    next(err);
+    return next(err);
   }
 };

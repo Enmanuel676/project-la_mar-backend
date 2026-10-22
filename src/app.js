@@ -18,8 +18,11 @@ app.use(express.json());
 // CORS del panel: solo los orígenes de ALLOWED_ORIGINS. Va aquí y no dentro de cada ruta
 // para que sea fácil ver qué queda abierto y qué no. /api/public no aparece en esta lista
 // porque tiene su propio CORS abierto (ver routes/public.js).
-app.use(['/api/auth', '/api/articles'], cors({
+// credentials: true es lo que permite que el navegador acepte la cookie de sesión
+// (Set-Cookie) en la respuesta del login, que es una petición cross-origin desde el panel.
+app.use(['/api/auth', '/api/articles', '/api/users'], cors({
   origin: env.allowedOrigins,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));

@@ -1,9 +1,14 @@
 const router = require('express').Router();
-const { login } = require('../controllers/auth');
-const { validateLogin } = require('../middlewares/validation');
+const { login, register, logout } = require('../controllers/auth');
+const { validateLogin, validateRegister } = require('../middlewares/validation');
 
-// Solo inicio de sesión. No hay POST /signup a propósito: las cuentas de administrador se
-// crean desde la terminal con `npm run seed:admin` (ver scripts/createAdmin.js).
+// Inicio de sesión.
 router.post('/login', validateLogin, login);
+
+// Registro de nuevos usuarios (administradores).
+router.post('/register', validateRegister, register);
+
+// Cierre de sesión: borra la cookie (sin exigir token, para poder salir aunque haya caducado).
+router.post('/logout', logout);
 
 module.exports = router;
