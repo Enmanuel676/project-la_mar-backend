@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
 
+// Correos con permisos de administrador total (pueden gestionar usuarios).
+const ADMIN_EMAILS = [
+  'daralibatista@gmail.com',
+  'enmanuel676hd@gmail.com',
+];
+
 const userSchema = new mongoose.Schema({
   // Se guarda en minúsculas y sin espacios para que "Admin@LaMar.com " y "admin@lamar.com"
   // sean el mismo usuario.
@@ -20,6 +26,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: 'Admin',
+  },
+  // Rol del usuario: 'admin' puede gestionar usuarios, 'user' es un usuario normal.
+  role: {
+    type: String,
+    enum: ['admin', 'user'],
+    default: 'user',
   },
   // select: false: el hash nunca sale en una consulta normal. Para comprobar el login hay
   // que pedirlo a propósito con .select('+password').
@@ -42,5 +54,27 @@ userSchema.statics.findByCredentials = async function findByCredentials(email, p
   const matches = await bcrypt.compare(password, user ? user.password : DUMMY_HASH);
   return user && matches ? user : null;
 };
+
+// Comprueba si un correo tiene permisos de administrador.
+userSchema.statics.isAdminEmail = function isAdminEmail(email) {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+};
+
+// Determina si un usuario es admin: por estar en la lista de correos admin O por tener role='admin'.
+// Esta es la lista autoritativa para la administración de usuarios.
+userSchema.methods.isAdmin = function isAdmin() {
+  return ADMIN_EMAILS.includes(this.email) || this.role === 'admin';
+};
+
+// Al convertir a JSON, nunca incluir la contraseña ni datos internos.
+userSchema.set('toJSON', {
+  transform(_doc, ret) {
+    const json = { ...ret };
+    delete json.password;
+    delete json.__v;
+    return json;
+  },
+});
 
 module.exports = mongoose.model('user', userSchema);
