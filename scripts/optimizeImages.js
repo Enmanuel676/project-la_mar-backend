@@ -1,5 +1,5 @@
-/* eslint-disable no-console -- script de terminal: el informe se lee en pantalla, también en
-   producción, donde el logger no escribe en la consola. */
+// Script de terminal: el informe se lee en pantalla con console.log, también en producción,
+// donde el logger no escribe en la consola (.eslintrc permite console en scripts/).
 const mongoose = require('mongoose');
 const connectDb = require('../src/config/db');
 const { getBucket } = require('../src/config/storage');
@@ -58,18 +58,16 @@ async function optimizeImages() {
   const articles = await Article.find({ imagePath: { $nin: ['', null] } });
   console.log(`${articles.length} artículo(s) con foto en el bucket${DRY_RUN ? ' (simulación: no se cambia nada)' : ''}.`);
 
-  // De uno en uno: si una foto falla, las demás se procesan igual.
-  // eslint-disable-next-line no-restricted-syntax
-  for (const article of articles) {
+  // De uno en uno (cadena de promesas): si una foto falla, las demás se procesan igual.
+  await articles.reduce((chain, article) => chain.then(async () => {
     try {
-      // eslint-disable-next-line no-await-in-loop
       console.log(`- ${article.name} (${article.id}): ${await optimizeArticle(article)}`);
     } catch (err) {
       const reason = err.code === 404 ? 'la foto no está en el bucket' : err.message;
       console.log(`- ${article.name} (${article.id}): ERROR, ${reason}`);
       process.exitCode = 1;
     }
-  }
+  }), Promise.resolve());
 
   // Fotos con URL de fuera del bucket (de antes de que el panel subiera archivos): no se pueden
   // descargar ni borrar desde aquí.

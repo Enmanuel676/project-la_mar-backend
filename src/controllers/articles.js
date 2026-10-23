@@ -7,6 +7,31 @@ const { uploadImage, deleteImage } = require('../utils/imageStorage');
 // todos los artículos activos.
 const ACTIVE = { deletedAt: null };
 
+// Obtener el filtro base para los artículos del usuario actual.
+// Los admins pueden ver todos los artículos; los usuarios normales solo los suyos.
+function getOwnerFilter(req) {
+  // Check si el usuario es admin: puede estar en req.adminUser (desde isAdmin middleware)
+  // o en req.fullUser (desde attachUser)
+  const user = req.adminUser || req.fullUser;
+
+  // Si el usuario es admin, puede ver todos los artículos
+  if (user && user.isAdmin && user.isAdmin()) {
+    return {};
+  }
+  // tambien verificar por el array de correos admin
+  if (
+    user
+    && user.email
+    && ['darelisbatistag@gmail.com', 'enmanuel676hd@gmail.com'].includes(
+      user.email.toLowerCase().trim(),
+    )
+  ) {
+    return {};
+  }
+  // Usuario normal: solo ve sus propios artículos
+  return { ownerId: req.user._id };
+}
+
 // Se eligen los campos uno a uno, en vez de pasar req.body entero al modelo: así nadie
 // puede colar campos internos (imagePath, deletedAt…) aunque se le escape algo a la
 // validación. Además `collection` se guarda como `collectionName` (ver el modelo).
@@ -25,7 +50,9 @@ function pickFields(body) {
     description: body.description,
     published: body.published,
   };
-  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined),
+  );
 }
 
 // Borrar una imagen vieja es "lo mejor posible": si falla, el artículo ya está guardado y
@@ -40,7 +67,10 @@ async function tryDeleteImage(path) {
 
 async function getArticles(req, res, next) {
   try {
-    const articles = await Article.find(ACTIVE).sort({ createdAt: -1 });
+    const ownerFilter = getOwnerFilter(req);
+    const articles = await Article.find({ ...ACTIVE, ...ownerFilter })
+      .populate('ownerId', 'name email role')
+      .sort({ createdAt: -1 });
     res.send(articles);
   } catch (err) {
     next(err);
@@ -49,7 +79,13 @@ async function getArticles(req, res, next) {
 
 async function getDeletedArticles(req, res, next) {
   try {
-    const articles = await Article.find({ deletedAt: { $ne: null } }).sort({ deletedAt: -1 });
+    const ownerFilter = getOwnerFilter(req);
+    const articles = await Article.find({
+      deletedAt: { $ne: null },
+      ...ownerFilter,
+    })
+      .populate('ownerId', 'name email role')
+      .sort({ deletedAt: -1 });
     res.send(articles);
   } catch (err) {
     next(err);
@@ -60,13 +96,20 @@ async function createArticle(req, res, next) {
   let uploaded;
   try {
     const data = pickFields(req.body);
+    // Asignar el propietario del artículo al usuario autenticado
+    data.ownerId = req.user._id;
     if (req.file) {
       uploaded = await uploadImage(req.file);
       data.image = uploaded.url;
       data.imagePath = uploaded.path;
     }
     const article = await Article.create(data);
-    res.status(201).send(article);
+    // Populate del owner para incluir la información del creador
+    const populatedArticle = await Article.findById(article._id).populate(
+      'ownerId',
+      'name email role',
+    );
+    res.status(201).send(populatedArticle);
   } catch (err) {
     // Si la foto ya se subió pero el artículo no se pudo crear, se borra para no dejarla huérfana.
     if (uploaded) {
@@ -79,7 +122,12 @@ async function createArticle(req, res, next) {
 async function updateArticle(req, res, next) {
   let uploaded;
   try {
-    const article = await Article.findOne({ _id: req.params.id, ...ACTIVE });
+    const ownerFilter = getOwnerFilter(req);
+    const article = await Article.findOne({
+      _id: req.params.id,
+      ...ACTIVE,
+      ...ownerFilter,
+    });
     if (!article) {
       throw new ApiError(404, 'Artículo no encontrado.');
     }
@@ -102,7 +150,12 @@ async function updateArticle(req, res, next) {
     if (oldPath && oldPath !== article.imagePath) {
       await tryDeleteImage(oldPath);
     }
-    res.send(article);
+    // Populate del owner para incluir la información del creador
+    const populatedArticle = await Article.findById(article._id).populate(
+      'ownerId',
+      'name email role',
+    );
+    res.send(populatedArticle);
   } catch (err) {
     if (uploaded) {
       await tryDeleteImage(uploaded.path);
@@ -115,8 +168,9 @@ async function updateArticle(req, res, next) {
 // pública, y al restaurarlo vuelve como borrador.
 async function deleteArticle(req, res, next) {
   try {
+    const ownerFilter = getOwnerFilter(req);
     const article = await Article.findOneAndUpdate(
-      { _id: req.params.id, ...ACTIVE },
+      { _id: req.params.id, ...ACTIVE, ...ownerFilter },
       { deletedAt: new Date(), published: false },
     );
     if (!article) {
@@ -130,15 +184,21 @@ async function deleteArticle(req, res, next) {
 
 async function restoreArticle(req, res, next) {
   try {
+    const ownerFilter = getOwnerFilter(req);
     const article = await Article.findOneAndUpdate(
-      { _id: req.params.id, deletedAt: { $ne: null } },
+      { _id: req.params.id, deletedAt: { $ne: null }, ...ownerFilter },
       { $unset: { deletedAt: 1 } },
       { new: true },
     );
     if (!article) {
       throw new ApiError(404, 'Artículo no encontrado en la papelera.');
     }
-    res.send(article);
+    // Populate del owner para incluir la información del creador
+    const populatedArticle = await Article.findById(article._id).populate(
+      'ownerId',
+      'name email role',
+    );
+    res.send(populatedArticle);
   } catch (err) {
     next(err);
   }
@@ -148,7 +208,12 @@ async function restoreArticle(req, res, next) {
 // activo no se puede destruir de un solo paso, así que un clic equivocado tiene salvación.
 async function destroyArticle(req, res, next) {
   try {
-    const article = await Article.findOne({ _id: req.params.id, deletedAt: { $ne: null } });
+    const ownerFilter = getOwnerFilter(req);
+    const article = await Article.findOne({
+      _id: req.params.id,
+      deletedAt: { $ne: null },
+      ...ownerFilter,
+    });
     if (!article) {
       throw new ApiError(404, 'Artículo no encontrado en la papelera.');
     }
