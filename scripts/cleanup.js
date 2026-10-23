@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
-const logger = require('./src/config/logger');
-const connectDb = require('./src/config/db');
-const User = require('./src/models/user');
-const Article = require('./src/models/article');
-const { deleteImage } = require('./src/utils/imageStorage');
+const logger = require('../src/config/logger');
+const connectDb = require('../src/config/db');
+const User = require('../src/models/user');
+const Article = require('../src/models/article');
+const { deleteImage } = require('../src/utils/imageStorage');
 
 // Email del administrador a conservar
 const ADMIN_EMAIL_TO_KEEP = 'daralibatista@gmail.com';
@@ -28,9 +28,9 @@ async function cleanup() {
   });
   await Promise.all(deletePromises);
 
-  // Eliminar todos los articulos de la base de datos
+  // Eliminar todos los artículos de la base de datos,
   await Article.deleteMany({});
-  logger.info(`Eliminados ${articles.length} articulos de la base de datos`);
+  logger.info(`Eliminados ${articles.length} artículos de la base de datos`);
 
   // 2. Eliminar usuarios excepto el administrador especificado
   logger.info('Limpando usuarios...');
@@ -42,11 +42,11 @@ async function cleanup() {
     logger.info(`Conservando usuario administrador: ${ADMIN_EMAIL_TO_KEEP}`);
     // Eliminar todos los usuarios excepto el administrador
     const result = await User.deleteMany({
-      email: { $ne: ADMIN_EMAIL_TO_KEEP }
+      email: { $ne: ADMIN_EMAIL_TO_KEEP },
     });
     logger.info(`Eliminados ${result.deletedCount} usuarios. Conservado: ${adminUser.email}`);
   } else {
-    logger.warn(`No se encontro el usuario ${ADMIN_EMAIL_TO_KEEP}, se eliminaran TODOS los usuarios`);
+    logger.warn(`No se encontró el usuario ${ADMIN_EMAIL_TO_KEEP}, se eliminarán TODOS los usuarios`);
     await User.deleteMany({});
     logger.info('Todos los usuarios han sido eliminados');
   }

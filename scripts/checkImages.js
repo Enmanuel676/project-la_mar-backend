@@ -1,6 +1,10 @@
 // Script de terminal: el resultado se lee en pantalla con console.log, también en producción,
 // donde el logger no escribe en la consola (.eslintrc permite console en scripts/).
 const crypto = require('crypto');
+
+// sharp se carga aquí y no arriba: si sus binarios no sirven en esta máquina, el script
+// explica el fallo en vez de cortarse con la traza.
+const sharp = require('sharp');
 const env = require('../src/config/env');
 const { getBucket } = require('../src/config/storage');
 
@@ -20,11 +24,8 @@ function fail(text, hint) {
   process.exitCode = 1;
 }
 
-// sharp se carga aquí y no arriba: si sus binarios no sirven en esta máquina, el script
-// explica el fallo en vez de cortarse con la traza.
 async function checkSharp() {
   try {
-    const sharp = require('sharp');
     const image = await sharp({
       create: {
         width: 8, height: 8, channels: 3, background: '#0a3d62',

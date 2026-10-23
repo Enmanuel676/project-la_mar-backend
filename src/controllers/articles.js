@@ -1,7 +1,7 @@
-const Article = require("../models/article");
-const ApiError = require("../utils/ApiError");
-const logger = require("../config/logger");
-const { uploadImage, deleteImage } = require("../utils/imageStorage");
+const Article = require('../models/article');
+const ApiError = require('../utils/ApiError');
+const logger = require('../config/logger');
+const { uploadImage, deleteImage } = require('../utils/imageStorage');
 
 // `deletedAt: null` también coincide con los documentos que no tienen el campo, que son
 // todos los artículos activos.
@@ -20,9 +20,9 @@ function getOwnerFilter(req) {
   }
   // tambien verificar por el array de correos admin
   if (
-    user &&
-    user.email &&
-    ["darelisbatistag@gmail.com", "enmanuel676hd@gmail.com"].includes(
+    user
+    && user.email
+    && ['darelisbatistag@gmail.com', 'enmanuel676hd@gmail.com'].includes(
       user.email.toLowerCase().trim(),
     )
   ) {
@@ -43,7 +43,7 @@ function pickFields(body) {
     price: body.price,
     currency: body.currency,
     // Un stock vacío significa "sin límite", que se guarda como null.
-    stock: body.stock === "" ? null : body.stock,
+    stock: body.stock === '' ? null : body.stock,
     category: body.category,
     collectionName: body.collection,
     materials: body.materials,
@@ -69,7 +69,7 @@ async function getArticles(req, res, next) {
   try {
     const ownerFilter = getOwnerFilter(req);
     const articles = await Article.find({ ...ACTIVE, ...ownerFilter })
-      .populate("ownerId", "name email role")
+      .populate('ownerId', 'name email role')
       .sort({ createdAt: -1 });
     res.send(articles);
   } catch (err) {
@@ -84,7 +84,7 @@ async function getDeletedArticles(req, res, next) {
       deletedAt: { $ne: null },
       ...ownerFilter,
     })
-      .populate("ownerId", "name email role")
+      .populate('ownerId', 'name email role')
       .sort({ deletedAt: -1 });
     res.send(articles);
   } catch (err) {
@@ -106,8 +106,8 @@ async function createArticle(req, res, next) {
     const article = await Article.create(data);
     // Populate del owner para incluir la información del creador
     const populatedArticle = await Article.findById(article._id).populate(
-      "ownerId",
-      "name email role",
+      'ownerId',
+      'name email role',
     );
     res.status(201).send(populatedArticle);
   } catch (err) {
@@ -129,7 +129,7 @@ async function updateArticle(req, res, next) {
       ...ownerFilter,
     });
     if (!article) {
-      throw new ApiError(404, "Artículo no encontrado.");
+      throw new ApiError(404, 'Artículo no encontrado.');
     }
 
     const oldPath = article.imagePath;
@@ -140,8 +140,8 @@ async function updateArticle(req, res, next) {
       article.image = uploaded.url;
       article.imagePath = uploaded.path;
     } else if (req.body.removeImage) {
-      article.image = "";
-      article.imagePath = "";
+      article.image = '';
+      article.imagePath = '';
     }
 
     await article.save();
@@ -152,8 +152,8 @@ async function updateArticle(req, res, next) {
     }
     // Populate del owner para incluir la información del creador
     const populatedArticle = await Article.findById(article._id).populate(
-      "ownerId",
-      "name email role",
+      'ownerId',
+      'name email role',
     );
     res.send(populatedArticle);
   } catch (err) {
@@ -174,7 +174,7 @@ async function deleteArticle(req, res, next) {
       { deletedAt: new Date(), published: false },
     );
     if (!article) {
-      throw new ApiError(404, "Artículo no encontrado.");
+      throw new ApiError(404, 'Artículo no encontrado.');
     }
     res.status(204).send();
   } catch (err) {
@@ -191,12 +191,12 @@ async function restoreArticle(req, res, next) {
       { new: true },
     );
     if (!article) {
-      throw new ApiError(404, "Artículo no encontrado en la papelera.");
+      throw new ApiError(404, 'Artículo no encontrado en la papelera.');
     }
     // Populate del owner para incluir la información del creador
     const populatedArticle = await Article.findById(article._id).populate(
-      "ownerId",
-      "name email role",
+      'ownerId',
+      'name email role',
     );
     res.send(populatedArticle);
   } catch (err) {
@@ -215,7 +215,7 @@ async function destroyArticle(req, res, next) {
       ...ownerFilter,
     });
     if (!article) {
-      throw new ApiError(404, "Artículo no encontrado en la papelera.");
+      throw new ApiError(404, 'Artículo no encontrado en la papelera.');
     }
     // Primero la imagen y después el documento: si el bucket falla, el artículo sigue en la
     // papelera y se puede reintentar. Al revés, la foto quedaría sin dueño para siempre.

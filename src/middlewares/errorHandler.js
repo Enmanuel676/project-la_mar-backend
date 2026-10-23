@@ -38,7 +38,7 @@ function translate(err) {
 
 // Express reconoce un manejador de errores por sus cuatro parámetros: hay que dejar `next`
 // aunque no se use (.eslintrc lo permite con argsIgnorePattern).
-module.exports = (err, req, res, next) => {
+module.exports = (err, req, res, _next) => {
   const known = translate(err);
 
   // Construir objeto de log con toda la información relevante

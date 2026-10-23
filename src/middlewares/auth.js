@@ -15,8 +15,7 @@ function getCookie(req, name) {
   for (let i = 0; i < parts.length; i += 1) {
     const part = parts[i];
     const eq = part.indexOf('=');
-    if (eq < 0) continue; // eslint-disable-line no-continue
-    if (part.slice(0, eq).trim() === name) {
+    if (eq >= 0 && part.slice(0, eq).trim() === name) {
       return decodeURIComponent(part.slice(eq + 1).trim());
     }
   }
