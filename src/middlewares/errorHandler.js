@@ -37,17 +37,34 @@ function translate(err) {
 }
 
 // Express reconoce un manejador de errores por sus cuatro parámetros: hay que dejar `next`
-// aunque no se use.
-// eslint-disable-next-line no-unused-vars
-module.exports = (err, req, res, next) => {
+// aunque no se use (.eslintrc lo permite con argsIgnorePattern).
+module.exports = (err, req, res, _next) => {
   const known = translate(err);
 
+  // Construir objeto de log con toda la información relevante
+  const logData = {
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    path: req.originalUrl,
+    statusCode: known ? known.statusCode : 500,
+    errorType: err.name || 'UnknownError',
+    errorMessage: known ? known.message : err.message,
+    stack: err.stack,
+    // Incluir datos relevantes de la petición para depuración (pero no la contraseña)
+    body: req.body ? { ...req.body, password: '***' } : undefined,
+    query: req.query,
+    params: req.params,
+  };
+
+  // Registrar todos los errores en error.log (los 500 van automáticamente por el level: 'error')
   if (known) {
+    // Errores conocidos (4xx)
+    logger.warn(`${logData.method} ${logData.path} - ${logData.statusCode}: ${logData.errorMessage}`, logData);
     res.status(known.statusCode).send({ message: known.message });
     return;
   }
 
-  // Error inesperado: queda en error.log con su traza, y fuera solo sale un mensaje genérico.
-  logger.error(`${req.method} ${req.originalUrl} - ${err.stack || err.message}`);
+  // Error inesperado (5xx): registra como error
+  logger.error(`${logData.method} ${logData.path} - ${logData.errorMessage}`, logData);
   res.status(500).send({ message: 'Ha ocurrido un error en el servidor.' });
 };

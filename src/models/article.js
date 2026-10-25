@@ -5,6 +5,13 @@ const CURRENCIES = ['USD', 'CUP'];
 
 const articleSchema = new mongoose.Schema(
   {
+    // Propietario del artículo: cada usuario tiene sus propias publicaciones.
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'user',
+      required: true,
+      index: true,
+    },
     name: {
       type: String, required: true, trim: true, maxlength: 80,
     },
@@ -38,6 +45,13 @@ articleSchema.set('toJSON', {
     const json = { ...ret };
     json.id = ret._id.toString();
     json.collection = ret.collectionName;
+    json.ownerId = ret.ownerId ? ret.ownerId.toString() : null;
+    // Incluir información del owner si está populado
+    if (ret.ownerId && ret.ownerId.name) {
+      json.ownerName = ret.ownerId.name;
+      json.ownerEmail = ret.ownerId.email;
+      json.ownerRole = ret.ownerId.role;
+    }
     delete json._id;
     delete json.__v;
     delete json.collectionName;
