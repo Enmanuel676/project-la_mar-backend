@@ -39,6 +39,9 @@ module.exports = {
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '12h',
   trashRetentionDays: Number(process.env.TRASH_RETENTION_DAYS) || 30,
+  // Correos de administradores. En desarrollo se usan valores por defecto para
+  // permitir el registro y login de admins en local.
+  adminEmails: process.env.ADMIN_EMAILS || 'darelisbatistag@gmail.com,enmanuel676hd@gmail.com',
   // Lista separada por comas; el .filter(Boolean) descarta entradas vacías (una coma sobrante).
   // En desarrollo se acepta además cualquier puerto de localhost: Vite usa el 5173, pero pasa
   // al 5174 (o al siguiente libre) si ya está ocupado, y `vite preview` usa el 4173. En

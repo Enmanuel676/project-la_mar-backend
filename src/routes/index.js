@@ -1,4 +1,8 @@
 const router = require('express').Router();
+const { apiLimiter } = require('../middlewares/rateLimit');
+
+// Aplicar rate limiting a todas las rutas de la API
+router.use(apiLimiter);
 
 // Ruta principal que lista todos los endpoints disponibles
 router.use('/', require('./api'));

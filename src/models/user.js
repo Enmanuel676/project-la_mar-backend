@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const env = require('../config/env');
 
 // Correos con permisos de administrador total (pueden gestionar usuarios).
-const ADMIN_EMAILS = ['darelisbatistag@gmail.com', 'enmanuel676hd@gmail.com'];
+// Se cargan desde variables de entorno, separados por coma.
+// Ejemplo: ADMIN_EMAILS="email1@ejemplo.com,email2@ejemplo.com"
+const ADMIN_EMAILS = (env.adminEmails || '')
+  .split(',')
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 const userSchema = new mongoose.Schema({
   // Se guarda en minúsculas y sin espacios para que "Admin@LaMar.com " y "admin@lamar.com"

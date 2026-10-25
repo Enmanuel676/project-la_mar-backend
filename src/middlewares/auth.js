@@ -39,12 +39,27 @@ module.exports = (req, res, next) => {
   }
 
   try {
-    // verify lanza si la firma no coincide o el token caducó; ambos casos son un 401.
-    // Se fija el algoritmo para que nadie pueda elegir otro desde el propio token.
-    req.user = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] });
+    // Opciones de verificación: solo permitir HS256
+    const options = { algorithms: ['HS256'] };
+
+    req.user = jwt.verify(token, env.jwtSecret, options);
+
+    // Validación adicional: asegurar que el token tenga _id
+    if (!req.user || !req.user._id) {
+      throw new Error('Token inválido: falta el ID de usuario');
+    }
+
     next();
   } catch (err) {
-    next(new ApiError(401, 'Sesión caducada. Vuelve a iniciar sesión.'));
+    // Diferenciar entre token inválido y token expirado para mensajes más precisos
+    let message = 'Sesión caducada. Vuelve a iniciar sesión.';
+    if (err.name === 'TokenExpiredError') {
+      message = 'Sesión caducada. Vuelve a iniciar sesión.';
+    } else if (err.name === 'JsonWebTokenError') {
+      message = 'Token inválido. Inicia sesión de nuevo.';
+    }
+
+    next(new ApiError(401, message));
   }
 };
 
