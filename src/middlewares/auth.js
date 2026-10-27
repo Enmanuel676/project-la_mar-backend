@@ -1,11 +1,7 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const ApiError = require('../utils/ApiError');
-
-// Nombre de la cookie de sesión. El login la fija además de devolver el token en el cuerpo:
-// así el navegador manda la credencial solo al entrar a la API directamente (escribir la URL
-// a mano, p. ej. /api/users/me), sin que nadie tenga que pegar una cabecera.
-const SESSION_COOKIE = 'lamar_token';
+const { SESSION_COOKIE, setSessionCookie } = require('../utils/sessionCookie');
 
 // Lee una cookie por nombre de la cabecera Cookie (sin depender de cookie-parser).
 function getCookie(req, name) {
@@ -16,22 +12,28 @@ function getCookie(req, name) {
     const part = parts[i];
     const eq = part.indexOf('=');
     if (eq >= 0 && part.slice(0, eq).trim() === name) {
-      return decodeURIComponent(part.slice(eq + 1).trim());
+      try {
+        return decodeURIComponent(part.slice(eq + 1).trim());
+      } catch {
+        // Una cookie dañada no debe impedir recuperar la sesión con un Bearer válido.
+        return null;
+      }
     }
   }
   return null;
 }
 
 // Protege las rutas del panel. Acepta el token en la cabecera "Authorization: Bearer <token>"
-// (lo que usa el panel, que guarda el token en sessionStorage por pestaña) o en la cookie
+// (lo que usa el panel, que guarda el token en localStorage) o en la cookie
 // de sesión (lo que manda el navegador solo al entrar directamente a la API). La cabecera
-// gana si las dos existen: dentro de la app cada pestaña consulta con su propia cuenta.
+// gana si las dos existen: la cookie debe reflejar la sesión actual del panel.
 module.exports = (req, res, next) => {
   const { authorization } = req.headers;
   const bearer = authorization && authorization.startsWith('Bearer ')
     ? authorization.replace('Bearer ', '')
     : null;
-  const token = bearer || getCookie(req, SESSION_COOKIE);
+  const cookie = getCookie(req, SESSION_COOKIE);
+  const token = bearer || cookie;
 
   if (!token) {
     next(new ApiError(401, 'Se requiere iniciar sesión.'));
@@ -47,6 +49,13 @@ module.exports = (req, res, next) => {
     // Validación adicional: asegurar que el token tenga _id
     if (!req.user || !req.user._id) {
       throw new Error('Token inválido: falta el ID de usuario');
+    }
+
+    // localStorage puede conservar el token aunque se pierda la cookie de sesión.
+    // Restaurarla solo después de verificar el JWT permite abrir la API en otra ventana
+    // al volver a cargar el panel, sin exigir un nuevo login ni extender la vida del token.
+    if (bearer && bearer !== cookie) {
+      setSessionCookie(req, res, bearer);
     }
 
     next();

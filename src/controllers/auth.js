@@ -4,22 +4,7 @@ const env = require('../config/env');
 const logger = require('../config/logger');
 const User = require('../models/user');
 const ApiError = require('../utils/ApiError');
-const { SESSION_COOKIE } = require('../middlewares/auth');
-
-// La cookie de sesión es HttpOnly (el JavaScript no la lee, solo viaja con cada petición) y
-// SameSite=Lax (la mandan las navegaciones de nivel superior: entrar a la API a mano). Secure
-// solo cuando la petición llega por HTTPS: en local es http y con Secure el navegador la
-// rechazaría. Sin Max-Age es cookie de sesión: desaparece al cerrar el navegador.
-function sessionCookieOptions(req) {
-  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  return {
-    httpOnly: true, sameSite: 'lax', secure, path: '/',
-  };
-}
-
-function setSessionCookie(req, res, token) {
-  res.cookie(SESSION_COOKIE, token, sessionCookieOptions(req));
-}
+const { SESSION_COOKIE, sessionCookieOptions, setSessionCookie } = require('../utils/sessionCookie');
 
 async function login(req, res, next) {
   try {
@@ -137,7 +122,7 @@ async function register(req, res, next) {
 // Cierre de sesión: borra la cookie del navegador. No usa el middleware auth a propósito:
 // hay que poder cerrar sesión aunque el token ya haya caducado. El token en sí es stateless
 // (JWT), así que "cerrar sesión" aquí es solo olvidar la cookie; el panel borra además su
-// copia en sessionStorage.
+// copia en localStorage.
 async function logout(req, res) {
   res.clearCookie(SESSION_COOKIE, sessionCookieOptions(req));
   res.status(204).send();

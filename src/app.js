@@ -29,6 +29,19 @@ app.use(['/api/auth', '/api/articles', '/api/users'], cors({
 
 app.use('/api', routes);
 
+// Endpoint de salud - debe estar ANTES del middleware 404
+app.get('/api/health', (req, res) => {
+  // Esto se actualizará en server.js con la conexión real a MongoDB
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: env.nodeEnv,
+    mongoConnected: false, // Se actualizará en server.js
+    uptime: process.uptime(),
+  });
+});
+
 // Si ninguna ruta respondió, la dirección no existe.
 app.use((req, res, next) => {
   next(new ApiError(404, 'Recurso no encontrado.'));

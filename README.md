@@ -51,6 +51,18 @@ Todos bajo `/api`. Errores siempre como `{ "message": "..." }` en español.
 
 **Cookie de sesión:** login y registro guardan el token en una cookie `lamar_token` (`HttpOnly`, `SameSite=Lax`). El middleware `auth` acepta la cabecera `Authorization: Bearer` o esa cookie; la cabecera gana. Así, **puedes acceder a cualquier ruta de la API directamente desde la barra del navegador** (ej. `http://localhost:3000/api/users/me` o `http://localhost:3000/api/articles`) y verás los datos de tu sesión actual, sin necesidad de usar Postman o headers personalizados.
 
+El panel conserva el token en `localStorage`, mientras que la cookie es de sesión y puede
+desaparecer al cerrar el navegador. Cuando el panel vuelve a consultar la API con un JWT
+válido, el backend restaura la cookie si falta o pertenece a otra sesión. No renueva el JWT
+ni prolonga su caducidad. Tras desplegar esta versión, recarga el panel antes de abrir un
+endpoint en otra ventana del mismo perfil de navegador, usando el mismo host de la API.
+
+En producción, el panel debe enviar `credentials: 'include'` (ya lo hace), su origen exacto
+debe estar en `ALLOWED_ORIGINS` y nginx debe reenviar `X-Forwarded-Proto: https` cuando termine
+TLS. Los dominios `https://admin.lamarjoyeria.mooo.com` y `https://api.lamarjoyeria.mooo.com`
+permiten mantener `SameSite=Lax`; no es necesario compartir la cookie con todos los subdominios.
+`localStorage` pertenece al origen del panel y no se envía automáticamente al navegar a la API.
+
 ### Artículos
 
 | Método | Ruta | Auth | Descripción |

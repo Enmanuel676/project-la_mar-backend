@@ -240,6 +240,86 @@ describe('Backend Authentication System', () => {
 
       verifyStub.restore();
     });
+
+    it('should restore a missing cookie from a valid saved token for direct API navigation', () => {
+      const token = jwt.sign({ _id: 'returning-user' }, mockEnv.jwtSecret, { expiresIn: '1h' });
+      const panel = createMockReqRes();
+      panel.req.headers.authorization = `Bearer ${token}`;
+      panel.req.headers['x-forwarded-proto'] = 'https';
+
+      authMiddleware(panel.req, panel.res, panel.next);
+
+      expect(panel.next.calledOnceWithExactly()).to.be.true;
+      expect(panel.res.cookie.calledOnce).to.be.true;
+      expect(panel.res.cookie.firstCall.args).to.deep.equal([
+        'lamar_token', token,
+        { httpOnly: true, sameSite: 'lax', secure: true, path: '/' },
+      ]);
+
+      const navigation = createMockReqRes();
+      navigation.req.headers.cookie = `lamar_token=${encodeURIComponent(panel.res.cookie.firstCall.args[1])}`;
+      authMiddleware(navigation.req, navigation.res, navigation.next);
+
+      expect(navigation.next.calledOnceWithExactly()).to.be.true;
+      expect(navigation.req.user._id).to.equal('returning-user');
+      expect(navigation.res.cookie.called).to.be.false;
+    });
+
+    it('should replace a stale cookie with the account authenticated by the panel', () => {
+      const token = jwt.sign({ _id: 'current-user' }, mockEnv.jwtSecret, { expiresIn: '1h' });
+      const { req, res, next } = createMockReqRes();
+      req.headers.authorization = `Bearer ${token}`;
+      req.headers.cookie = 'lamar_token=old-token';
+
+      authMiddleware(req, res, next);
+
+      expect(next.calledOnceWithExactly()).to.be.true;
+      expect(res.cookie.firstCall.args[1]).to.equal(token);
+      expect(res.cookie.firstCall.args[2].secure).to.be.false;
+    });
+
+    it('should not rewrite an already synchronized cookie', () => {
+      const token = jwt.sign({ _id: 'current-user' }, mockEnv.jwtSecret, { expiresIn: '1h' });
+      const { req, res, next } = createMockReqRes();
+      req.headers.authorization = `Bearer ${token}`;
+      req.headers.cookie = `lamar_token=${token}`;
+
+      authMiddleware(req, res, next);
+
+      expect(next.calledOnceWithExactly()).to.be.true;
+      expect(res.cookie.called).to.be.false;
+    });
+
+    it('should recover a malformed cookie only when a valid Bearer is supplied', () => {
+      const { req, res, next } = createMockReqRes();
+      req.headers.cookie = 'lamar_token=%E0%A4%A';
+      authMiddleware(req, res, next);
+      expect(next.firstCall.args[0].statusCode).to.equal(401);
+      expect(res.cookie.called).to.be.false;
+
+      next.resetHistory();
+      const token = jwt.sign({ _id: 'current-user' }, mockEnv.jwtSecret, { expiresIn: '1h' });
+      req.headers.authorization = `Bearer ${token}`;
+      authMiddleware(req, res, next);
+
+      expect(next.calledOnceWithExactly()).to.be.true;
+      expect(res.cookie.firstCall.args[1]).to.equal(token);
+    });
+
+    it('should never create a cookie from an expired, forged or incomplete token', () => {
+      const tokens = [
+        jwt.sign({ _id: 'user' }, mockEnv.jwtSecret, { expiresIn: -1 }),
+        jwt.sign({ _id: 'user' }, 'another-secret', { expiresIn: '1h' }),
+        jwt.sign({}, mockEnv.jwtSecret, { expiresIn: '1h' }),
+      ];
+      tokens.forEach((token) => {
+        const { req, res, next } = createMockReqRes();
+        req.headers.authorization = `Bearer ${token}`;
+        authMiddleware(req, res, next);
+        expect(next.firstCall.args[0].statusCode).to.equal(401);
+        expect(res.cookie.called).to.be.false;
+      });
+    });
   });
 
   describe('Middleware: isAdmin.js', () => {
@@ -591,6 +671,25 @@ describe('Backend Authentication System', () => {
 
       expect(res.clearCookie.calledOnce).to.be.true;
       expect(res.clearCookie.firstCall.args[0]).to.equal('lamar_token');
+      expect(res.clearCookie.firstCall.args[1]).to.deep.equal({
+        httpOnly: true, sameSite: 'lax', secure: false, path: '/',
+      });
+    });
+
+    it('should clear the HTTPS cookie behind nginx using the same scope as login', async () => {
+      const { req, res, next } = createMockReqRes();
+      req.headers['x-forwarded-proto'] = 'https';
+      req.body = { email: 'test@example.com', password: 'password' };
+      findByCredentialsStub.resolves(mockUser);
+
+      const { login, logout } = require('../src/controllers/auth');
+      await login(req, res, next);
+      await logout(req, res);
+
+      expect(res.cookie.firstCall.args[2].secure).to.be.true;
+      expect(res.clearCookie.firstCall.args).to.deep.equal([
+        res.cookie.firstCall.args[0], res.cookie.firstCall.args[2],
+      ]);
     });
   });
 });
