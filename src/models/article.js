@@ -29,6 +29,8 @@ const articleSchema = new mongoose.Schema(
     // (borrar el documento y su imagen del bucket) la hace el propio servidor a los 30 días,
     // porque Mongo solo borraría el documento y la imagen quedaría huérfana.
     deletedAt: { type: Date },
+    // Quién creó el artículo. Sirve para mostrar «creado por» en el panel.
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
   },
   { timestamps: true },
 );
@@ -42,6 +44,14 @@ articleSchema.set('toJSON', {
     delete json.__v;
     delete json.collectionName;
     delete json.imagePath;
+    // Si owner está populado, exponer ownerName y ownerEmail como espera el frontend.
+    if (ret.owner && typeof ret.owner === 'object' && ret.owner.name) {
+      json.ownerName = ret.owner.name;
+      json.ownerEmail = ret.owner.email;
+      json.owner = ret.owner._id ? ret.owner._id.toString() : ret.owner.toString();
+    } else if (ret.owner) {
+      json.owner = ret.owner.toString();
+    }
     return json;
   },
 });

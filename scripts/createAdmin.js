@@ -1,4 +1,3 @@
-const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const env = require('../src/config/env');
 const logger = require('../src/config/logger');
@@ -19,15 +18,24 @@ async function createAdmin() {
   }
 
   await connectDb();
-  const hash = await bcrypt.hash(password, 10);
 
-  // upsert: si el correo ya existe se cambia su contraseña, así el mismo script sirve
-  // para crear el admin y para restablecerla.
-  await User.findOneAndUpdate(
-    { email },
-    { email, password: hash, name: 'Admin' },
-    { upsert: true, runValidators: true, setDefaultsOnInsert: true },
-  );
+  // Si el correo ya existe, se actualiza la contraseña y el rol; si no, se crea.
+  const existing = await User.findOne({ email }).select('+password');
+  if (existing) {
+    existing.firstName = 'Admin';
+    existing.lastName = 'La Mar';
+    existing.role = 'admin';
+    await existing.setPassword(password);
+  } else {
+    await User.createWithPassword({
+      email,
+      firstName: 'Admin',
+      lastName: 'La Mar',
+      password,
+      role: 'admin',
+    });
+  }
+
   logger.info(`Administrador listo: ${email}`);
 }
 

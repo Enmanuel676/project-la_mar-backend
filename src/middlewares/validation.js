@@ -1,6 +1,7 @@
 const { celebrate, Joi, Segments } = require('celebrate');
 const validator = require('validator');
 const Article = require('../models/article');
+const User = require('../models/user');
 
 // Mensajes de Joi en español. `{#label}` es el nombre legible de cada campo (ver .label()
 // en los esquemas), para que la persona usuaria no lea "price" sino "precio".
@@ -98,9 +99,43 @@ const validateArticleUpdate = validate({
   [Segments.PARAMS]: idParam,
 });
 
+// --- Validaciones de usuarios ---
+
+const validateRegister = validate({
+  [Segments.BODY]: Joi.object().keys({
+    firstName: Joi.string().trim().required().max(50).label('nombre'),
+    lastName: Joi.string().trim().required().max(50).label('apellido'),
+    email: Joi.string().required().custom(isEmail).label('correo'),
+    password: Joi.string().required().min(8).max(128).label('contraseña'),
+  }),
+});
+
+// El frontend envía `name` (nombre completo), `email` y `role`.
+const validateUpdateUser = validate({
+  [Segments.BODY]: Joi.object().keys({
+    name: Joi.string().trim().max(100).label('nombre'),
+    email: Joi.string().custom(isEmail).label('correo'),
+    role: Joi.string().valid(...User.ROLES).label('rol'),
+  }),
+  [Segments.PARAMS]: idParam,
+});
+
+const validateUserId = validate({ [Segments.PARAMS]: idParam });
+
+const validateChangePassword = validate({
+  [Segments.BODY]: Joi.object().keys({
+    password: Joi.string().required().min(8).max(128).label('contraseña'),
+  }),
+  [Segments.PARAMS]: idParam,
+});
+
 module.exports = {
   validateLogin,
+  validateRegister,
   validateArticle,
   validateArticleId,
   validateArticleUpdate,
+  validateUpdateUser,
+  validateUserId,
+  validateChangePassword,
 };

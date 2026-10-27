@@ -15,13 +15,13 @@ app.disable('x-powered-by');
 app.use(requestLogger);
 app.use(express.json());
 
-// CORS del panel: solo los orígenes de ALLOWED_ORIGINS. Va aquí y no dentro de cada ruta
-// para que sea fácil ver qué queda abierto y qué no. /api/public no aparece en esta lista
-// porque tiene su propio CORS abierto (ver routes/public.js).
-app.use(['/api/auth', '/api/articles'], cors({
+// CORS del panel: aplicado globalmente a todas las rutas del API con credenciales.
+// Permite peticiones desde admin.lamarjoyeria.mooo.com con cookies/autenticación.
+app.use(cors({
   origin: env.allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 
 app.use('/api', routes);

@@ -40,7 +40,9 @@ async function tryDeleteImage(path) {
 
 async function getArticles(req, res, next) {
   try {
-    const articles = await Article.find(ACTIVE).sort({ createdAt: -1 });
+    const articles = await Article.find(ACTIVE)
+      .populate('owner', 'firstName lastName email')
+      .sort({ createdAt: -1 });
     res.send(articles);
   } catch (err) {
     next(err);
@@ -49,7 +51,9 @@ async function getArticles(req, res, next) {
 
 async function getDeletedArticles(req, res, next) {
   try {
-    const articles = await Article.find({ deletedAt: { $ne: null } }).sort({ deletedAt: -1 });
+    const articles = await Article.find({ deletedAt: { $ne: null } })
+      .populate('owner', 'firstName lastName email')
+      .sort({ deletedAt: -1 });
     res.send(articles);
   } catch (err) {
     next(err);
@@ -60,6 +64,8 @@ async function createArticle(req, res, next) {
   let uploaded;
   try {
     const data = pickFields(req.body);
+    // Asignar el usuario autenticado como owner del artículo.
+    data.owner = req.user._id;
     if (req.file) {
       uploaded = await uploadImage(req.file);
       data.image = uploaded.url;
