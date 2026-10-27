@@ -1,6 +1,8 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const net = require('net');
+const mongoose = require('mongoose');
 const env = require('./config/env');
 const logger = require('./config/logger');
 const { connectDb } = require('./config/db');
@@ -48,7 +50,8 @@ function performSystemAudit() {
   };
 
   // Verificar memoria disponible
-  const memoryUsage = (audit.system.totalMemory - audit.system.freeMemory) / audit.system.totalMemory;
+  const memoryUsage = (audit.system.totalMemory - audit.system.freeMemory)
+    / audit.system.totalMemory;
   if (memoryUsage > 0.8) {
     audit.warnings.push(`Alto uso de memoria del sistema: ${(memoryUsage * 100).toFixed(1)}%`);
   }
@@ -67,7 +70,6 @@ function performSystemAudit() {
   }
 
   // Verificar que el puerto esté disponible
-  const net = require('net');
   const server = net.createServer();
   server.once('error', (err) => {
     if (err.code === 'EADDRINUSE') {
@@ -92,7 +94,7 @@ function logAudit(audit) {
   logger.info('='.repeat(80));
   logger.info('AUDITORIA DE INICIO DEL SERVIDOR');
   logger.info('='.repeat(80));
-  
+
   logger.info(`Sistema: ${audit.system.hostname} (${os.platform()} ${os.arch()})`);
   logger.info(`Memoria: ${audit.system.freeMemory}MB libres de ${audit.system.totalMemory}MB`);
   logger.info(`Node.js: ${audit.node.version}`);
@@ -100,7 +102,7 @@ function logAudit(audit) {
   logger.info(`Puerto: ${audit.environment.port}`);
   logger.info(`MongoDB: ${audit.environment.mongoUri}`);
   logger.info(`JWT Secret: ${audit.environment.hasJwtSecret ? 'Configurado' : 'NO CONFIGURADO'}`);
-  
+
   if (audit.checks.length > 0) {
     logger.info(`Checks pasados: ${audit.checks.length}`);
     audit.checks.forEach((check) => logger.info(`  ✓ ${check}`));
@@ -156,7 +158,6 @@ async function start() {
     logger.info('✓ Conexión a MongoDB establecida');
 
     // Verificar conexión a MongoDB
-    const mongoose = require('mongoose');
     if (mongoose.connection.readyState !== 1) {
       throw new Error('No se pudo establecer conexión a MongoDB');
     }
@@ -175,11 +176,12 @@ async function start() {
 
     // Actualizar el endpoint de health para reflejar el estado de MongoDB
     // Como app.js ya tiene el endpoint /api/health, lo actualizamos aquí
-    const healthEndpoint = app._router.stack.find(layer => 
-      layer.route && layer.route.path === '/api/health'
+    // eslint-disable-next-line no-underscore-dangle
+    const routerStack = app._router.stack;
+    const healthEndpoint = routerStack.find(
+      (layer) => layer.route && layer.route.path === '/api/health',
     );
     if (healthEndpoint) {
-      const originalHandler = healthEndpoint.route.stack[0].handle;
       healthEndpoint.route.stack[0].handle = (req, res) => {
         res.json({
           status: 'ok',
@@ -249,7 +251,6 @@ async function start() {
     startLogRotation();
 
     logger.info('✓ Tareas programadas iniciadas (purga de papelera y rotación de logs)');
-
   } catch (err) {
     logger.error(`✗ No se pudo iniciar el servidor: ${err.message}`);
     logger.error(`  Stack: ${err.stack}`);

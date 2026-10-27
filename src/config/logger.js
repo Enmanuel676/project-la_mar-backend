@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const winston = require('winston');
 const env = require('./env');
 
@@ -7,7 +8,6 @@ const {
   timestamp,
   json,
   colorize,
-  simple,
   printf,
   errors,
 } = winston.format;
@@ -27,8 +27,10 @@ const fileFormat = combine(
 const consoleFormat = combine(
   colorize(),
   timestamp({ format: 'HH:mm:ss.SSS' }),
-  printf(({ level, message, timestamp, stack }) => {
-    let output = `${timestamp} [${level}]: ${message}`;
+  printf(({
+    level, message, timestamp: logTimestamp, stack,
+  }) => {
+    let output = `${logTimestamp} [${level}]: ${message}`;
     if (stack) {
       output += `\n${stack}`;
     }
@@ -41,7 +43,6 @@ const logDir = path.resolve(__dirname, '../../logs');
 
 // Crear directorio si no existe (con manejo de errores)
 try {
-  const fs = require('fs');
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
     console.log(`[LOGGER] Directorio logs creado: ${logDir}`);

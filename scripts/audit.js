@@ -2,10 +2,10 @@
 
 /**
  * Script de auditoría para el backend de La Mar
- * 
+ *
  * Ejecución:
  *   node scripts/audit.js
- * 
+ *
  * Este script verifica la configuración y el entorno antes de iniciar el servidor,
  * identificando problemas potenciales.
  */
@@ -13,11 +13,15 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const net = require('net');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const { execSync } = require('child_process');
+const env = require('../src/config/env');
 
-console.log('\n' + '='.repeat(80));
+console.log(`\n${'='.repeat(80)}`);
 console.log('AUDITORIA DEL BACKEND DE LA MAR');
-console.log('='.repeat(80) + '\n');
+console.log(`${'='.repeat(80)}\n`);
 
 // Colores para la consola
 const colors = {
@@ -137,19 +141,15 @@ try {
 // Verificar si MongoDB está corriendo
 try {
   // Intentar conectar a MongoDB
-  const mongoose = require('mongoose');
-  const envPath = path.resolve(__dirname, '../src/config/env.js');
-  const env = require(envPath);
-  
   logInfo(`URI configurada: ${env.mongoUri}`);
-  
+
   // Intentar conexión rápida
   try {
     const testConnection = async () => {
       try {
-        await mongoose.connect(env.mongoUri, { 
+        await mongoose.connect(env.mongoUri, {
           connectTimeoutMS: 3000,
-          serverSelectionTimeoutMS: 3000 
+          serverSelectionTimeoutMS: 3000,
         });
         await mongoose.connection.db.command({ ping: 1 });
         state.checks.push('Conexión a MongoDB exitosa');
@@ -166,12 +166,11 @@ try {
         }
       }
     };
-    
+
     // Ejecutar conexión de prueba (síncrona para el script)
     // No podemos usar async/await aquí, así que lo marcamos como pendiente
     state.warnings.push('Conexión a MongoDB no verificada (ejecutando en background)');
     testConnection().catch(() => {});
-    
   } catch (err) {
     state.errors.push(`Error al cargar configuración de MongoDB: ${err.message}`);
     logError(`Error al cargar configuración de MongoDB: ${err.message}`);
@@ -191,18 +190,18 @@ const envPath = path.resolve(__dirname, '../.env');
 if (fs.existsSync(envPath)) {
   state.checks.push('.env existe');
   logSuccess('.env existe');
-  
+
   // Verificar permisos
   const envStats = fs.statSync(envPath);
   logInfo(`Permisos: ${envStats.mode.toString(8)}`);
-  
+
   // Leer y verificar variables clave
   try {
-    require('dotenv').config({ path: envPath });
-    
+    dotenv.config({ path: envPath });
+
     const requiredVars = ['MONGODB_URI', 'JWT_SECRET'];
-    const missingVars = requiredVars.filter(varName => !process.env[varName]);
-    
+    const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+
     if (missingVars.length === 0) {
       state.checks.push('Todas las variables de entorno obligatorias están configuradas');
       logSuccess('Todas las variables de entorno obligatorias están configuradas');
@@ -210,7 +209,7 @@ if (fs.existsSync(envPath)) {
       state.errors.push(`Faltan variables de entorno: ${missingVars.join(', ')}`);
       logError(`Faltan variables de entorno: ${missingVars.join(', ')}`);
     }
-    
+
     // Verificar JWT_SECRET
     if (process.env.JWT_SECRET) {
       const jwtSecret = process.env.JWT_SECRET;
@@ -222,7 +221,7 @@ if (fs.existsSync(envPath)) {
         logSuccess('JWT_SECRET tiene longitud adecuada');
       }
     }
-    
+
     // Verificar PORT
     if (process.env.PORT) {
       const port = parseInt(process.env.PORT, 10);
@@ -237,7 +236,6 @@ if (fs.existsSync(envPath)) {
       state.checks.push('Puerto por defecto (3000)');
       logInfo('Puerto por defecto: 3000');
     }
-    
   } catch (err) {
     state.errors.push(`Error al leer .env: ${err.message}`);
     logError(`Error al leer .env: ${err.message}`);
@@ -255,19 +253,19 @@ logHeader('5. DEPENDENCIAS');
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 if (fs.existsSync(packageJsonPath)) {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
+
   logInfo(`Nombre: ${packageJson.name}`);
   logInfo(`Versión: ${packageJson.version}`);
-  
+
   // Verificar dependencias clave
   const requiredDependencies = [
-    'express', 'mongoose', 'jsonwebtoken', 'bcrypt', 'cors', 'dotenv'
+    'express', 'mongoose', 'jsonwebtoken', 'bcrypt', 'cors', 'dotenv',
   ];
-  
-  const missingDeps = requiredDependencies.filter(dep => 
-    !packageJson.dependencies || !packageJson.dependencies[dep]
+
+  const missingDeps = requiredDependencies.filter(
+    (dep) => !packageJson.dependencies || !packageJson.dependencies[dep],
   );
-  
+
   if (missingDeps.length === 0) {
     state.checks.push('Todas las dependencias clave están instaladas');
     logSuccess('Todas las dependencias clave están instaladas');
@@ -275,7 +273,7 @@ if (fs.existsSync(packageJsonPath)) {
     state.errors.push(`Faltan dependencias: ${missingDeps.join(', ')}`);
     logError(`Faltan dependencias: ${missingDeps.join(', ')}`);
   }
-  
+
   // Verificar node_modules
   const nodeModulesPath = path.resolve(__dirname, '../node_modules');
   if (fs.existsSync(nodeModulesPath)) {
@@ -300,14 +298,13 @@ const defaultPort = 3000;
 
 // Verificar si el puerto está en uso (Mac/Linux)
 try {
-  const net = require('net');
   const server = net.createServer();
-  
+
   server.once('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       state.errors.push(`El puerto ${defaultPort} ya está en uso`);
       logError(`El puerto ${defaultPort} ya está en uso`);
-      
+
       // Intentar encontrar el PID
       try {
         const lsofOutput = execSync(`lsof -i :${defaultPort}`, { encoding: 'utf8' });
@@ -326,15 +323,15 @@ try {
     }
     server.close();
   });
-  
+
   server.once('listening', () => {
     state.checks.push(`Puerto ${defaultPort} disponible`);
     logSuccess(`Puerto ${defaultPort} disponible`);
     server.close();
   });
-  
+
   server.listen(defaultPort);
-  
+
   // Esperar un momento para que se resuelva el evento
   setTimeout(() => {
     // Si el server no se cerró, cerrarlo manualmente
@@ -342,7 +339,6 @@ try {
       server.close();
     }
   }, 1000);
-  
 } catch (err) {
   state.warnings.push(`No se puede verificar el puerto ${defaultPort}: ${err.message}`);
   logWarning(`No se puede verificar el puerto ${defaultPort}: ${err.message}`);
@@ -359,7 +355,7 @@ const requiredDirs = [
   path.resolve(__dirname, '../test'),
 ];
 
-requiredDirs.forEach(dir => {
+requiredDirs.forEach((dir) => {
   if (fs.existsSync(dir)) {
     state.checks.push(`Directorio ${path.basename(dir)} existe`);
     logSuccess(`Directorio ${path.basename(dir)} existe`);
@@ -376,39 +372,39 @@ requiredDirs.forEach(dir => {
 // Esperar un momento para que se completen todas las verificaciones asíncronas
 setTimeout(() => {
   logHeader('RESUMEN');
-  
+
   const totalChecks = state.checks.length + state.warnings.length + state.errors.length;
   const successRate = Math.round((state.checks.length / totalChecks) * 100);
-  
+
   console.log(`\n${colors.cyan}Checks pasados:${colors.reset} ${state.checks.length}`);
   console.log(`${colors.yellow}Advertencias:${colors.reset} ${state.warnings.length}`);
   console.log(`${colors.red}Errores:${colors.reset} ${state.errors.length}`);
   console.log(`\n${colors.cyan}Tasa de éxito:${colors.reset} ${successRate}%`);
-  
+
   if (state.errors.length > 0) {
     logHeader('ERRORES ENCONTRADOS');
     state.errors.forEach((error, index) => {
       console.log(`  ${index + 1}. ${colors.red}${error}${colors.reset}`);
     });
-    
-    console.log('\n' + '='.repeat(80));
+
+    console.log(`\n${'='.repeat(80)}`);
     console.log(`${colors.red}AUDITORIA FALLIDA${colors.reset}: No se recomienda iniciar el servidor`);
-    console.log('='.repeat(80) + '\n');
+    console.log(`${'='.repeat(80)}\n`);
     process.exit(1);
   } else if (state.warnings.length > 0) {
     logHeader('ADVERTENCIAS');
     state.warnings.forEach((warning, index) => {
       console.log(`  ${index + 1}. ${colors.yellow}${warning}${colors.reset}`);
     });
-    
-    console.log('\n' + '='.repeat(80));
+
+    console.log(`\n${'='.repeat(80)}`);
     console.log(`${colors.yellow}AUDITORIA CON ADVERTENCIAS${colors.reset}`);
-    console.log('='.repeat(80) + '\n');
+    console.log(`${'='.repeat(80)}\n`);
     process.exit(0);
   } else {
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${'='.repeat(80)}`);
     console.log(`${colors.green}AUDITORIA EXITOSA${colors.reset}: El servidor debería funcionar correctamente`);
-    console.log('='.repeat(80) + '\n');
+    console.log(`${'='.repeat(80)}\n`);
     process.exit(0);
   }
 }, 2000);

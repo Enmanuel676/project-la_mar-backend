@@ -25,7 +25,7 @@ const DEV_DEFAULTS = {
  */
 function getEnvVar(name, required = true, validator = null) {
   const value = process.env[name] || (isProduction ? '' : DEV_DEFAULTS[name]);
-  
+
   if (!value && required) {
     throw new Error(`Falta la variable de entorno ${name}`);
   }
@@ -58,18 +58,16 @@ if (isProduction) {
   if (jwtSecret === PLACEHOLDER_SECRET) {
     throw new Error('JWT_SECRET no puede ser el valor placeholder en producción.');
   }
-} else {
-  // Advertencia en desarrollo si el secreto es muy corto
-  if (jwtSecret.length < 32 && !DEV_DEFAULTS.JWT_SECRET.includes(jwtSecret)) {
-    console.warn('⚠ Advertencia: JWT_SECRET debería tener al menos 32 caracteres, incluso en desarrollo');
-  }
+}
+
+// Advertencia en desarrollo si el secreto es muy corto
+if (!isProduction && jwtSecret.length < 32 && !DEV_DEFAULTS.JWT_SECRET.includes(jwtSecret)) {
+  console.warn('⚠ Advertencia: JWT_SECRET debería tener al menos 32 caracteres, incluso en desarrollo');
 }
 
 // Validar MONGODB_URI
-const mongoUri = getEnvVar('MONGODB_URI', true, (uri) => {
-  // Validación básica de URI de MongoDB
-  return uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://');
-});
+// Validación básica de URI de MongoDB
+const mongoUri = getEnvVar('MONGODB_URI', true, (uri) => uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://'));
 
 // Validar PORT
 const port = Number(getEnvVar('PORT', false)) || 3000;
@@ -117,19 +115,19 @@ const gcsProjectId = getEnvVar('GCS_PROJECT_ID', false) || undefined;
 
 // Log de configuración cargada (solo en desarrollo)
 if (!isProduction) {
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('CONFIGURACIÓN CARGADA (Desarrollo)');
   console.log('='.repeat(60));
   console.log(`  Entorno: ${isProduction ? 'Producción' : 'Desarrollo'}`);
   console.log(`  Puerto: ${port}`);
   console.log(`  MongoDB: ${mongoUri}`);
-  console.log(`  JWT Secret: ${jwtSecret.length > 0 ? 'Configurado (' + jwtSecret.length + ' chars)' : 'NO CONFIGURADO'}`);
+  console.log(`  JWT Secret: ${jwtSecret.length > 0 ? `Configurado (${jwtSecret.length} chars)` : 'NO CONFIGURADO'}`);
   console.log(`  JWT Expires: ${jwtExpiresIn}`);
   console.log(`  Admin Emails: ${adminEmails.length > 0 ? adminEmails.join(', ') : 'ninguno'}`);
   console.log(`  Orígenes permitidos: ${allowedOrigins.length}`);
   console.log(`  GCS Bucket: ${gcsBucketName || 'No configurado'}`);
   console.log(`  Retención papelera: ${trashRetentionDays} días`);
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 }
 
 module.exports = {

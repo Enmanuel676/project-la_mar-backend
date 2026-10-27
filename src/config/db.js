@@ -28,7 +28,7 @@ async function connectWithRetry() {
   try {
     logger.info(`Intentando conectar a MongoDB (intento ${retryCount + 1})...`);
     await mongoose.connect(env.mongoUri, mongooseOptions);
-    
+
     // Verificar conexión exitosamente
     const db = mongoose.connection;
     db.once('open', () => {
@@ -75,7 +75,7 @@ async function connectWithRetry() {
     return db;
   } catch (err) {
     logger.error(`✗ No se pudo conectar a MongoDB: ${err.message}`);
-    
+
     // Errores específicos de MongoDB
     if (err.name === 'MongoServerSelectionError') {
       logger.error('  Posibles causas:');
@@ -96,7 +96,7 @@ async function connectWithRetry() {
     if (retryCount < MAX_RETRIES) {
       retryCount += 1;
       logger.info(`MongoDB: Reintentando en ${RETRY_DELAY_MS / 1000} segundos... (${retryCount}/${MAX_RETRIES})`);
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      await new Promise((resolve) => { setTimeout(resolve, RETRY_DELAY_MS); });
       return connectWithRetry();
     }
 
