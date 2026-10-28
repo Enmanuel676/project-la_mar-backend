@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const env = require('./config/env');
 const routes = require('./routes');
@@ -11,6 +12,8 @@ const app = express();
 // Sin esto cada respuesta dice "X-Powered-By: Express", una pista gratuita para quien
 // busque fallos conocidos de esa versión.
 app.disable('x-powered-by');
+// Solo confiar en los proxies configurados (nginx local por defecto).
+app.set('trust proxy', env.trustProxy);
 
 app.use(requestLogger);
 app.use(express.json());
@@ -20,7 +23,7 @@ app.use(express.json());
 // porque tiene su propio CORS abierto (ver routes/public.js).
 // credentials: true es lo que permite que el navegador acepte la cookie de sesión
 // (Set-Cookie) en la respuesta del login, que es una petición cross-origin desde el panel.
-app.use(['/api/auth', '/api/articles', '/api/users'], cors({
+app.use(['/api/auth', '/api/signin', '/api/signup', '/api/articles', '/api/users', '/api/config'], cors({
   origin: env.allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -31,13 +34,13 @@ app.use('/api', routes);
 
 // Endpoint de salud - debe estar ANTES del middleware 404
 app.get('/api/health', (req, res) => {
-  // Esto se actualizará en server.js con la conexión real a MongoDB
-  res.json({
-    status: 'ok',
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({
+    status: connected ? 'ok' : 'unavailable',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: env.nodeEnv,
-    mongoConnected: false, // Se actualizará en server.js
+    mongoConnected: connected,
     uptime: process.uptime(),
   });
 });

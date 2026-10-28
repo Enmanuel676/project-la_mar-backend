@@ -22,7 +22,8 @@
     "audit:fix": "node scripts/audit.js && node src/server.js",
     "start:port": "PORT=3001 node src/server.js",
     "fix:port": "node scripts/fixPort.js --restart",
-    "health": "curl -s http://localhost:3000/api/health | node -e \"process.stdin.on('data', d => console.log(JSON.parse(d.toString())))\""
+    "health": "curl -s http://localhost:3000/api/health | node -e \"process.stdin.on('data', d => console.log(JSON.parse(d.toString())))\"",
+    "test:integration": "node --test test/integration/*.test.cjs"
   },
   "dependencies": {
     "@google-cloud/storage": "^8.2.0",

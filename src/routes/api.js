@@ -1,4 +1,10 @@
 const router = require('express').Router();
+const env = require('../config/env');
+
+// Configuración pública que el panel necesita para mostrar el mismo plazo que aplica la purga.
+router.get('/config', (req, res) => {
+  res.json({ trashRetentionDays: env.trashRetentionDays });
+});
 
 // GET /api - Documentación de los endpoints
 router.get('/', (req, res) => {
@@ -8,7 +14,10 @@ router.get('/', (req, res) => {
     description: 'API de la joyería La Mar. Las rutas marcadas con [Auth] requieren token de autenticación.',
     baseUrl: '/api',
     endpoints: {
+      config: { 'GET /api/config': 'Plazo de conservación de papelera' },
       auth: {
+        'POST /api/signin': 'Iniciar sesión → { token, user }',
+        'POST /api/signup': 'Crear cuenta normal → { token, user }',
         'POST /api/auth/signin': 'Iniciar sesión - { email, password } → { token, user }',
         'POST /api/auth/signup': 'Registrar usuario - { firstName, lastName, email, password } → { token, user }',
         'POST /api/auth/logout': 'Cerrar sesión (borra cookie)',
@@ -25,6 +34,7 @@ router.get('/', (req, res) => {
         'GET /api/public/articles': 'Listar artículos publicados (público)',
       },
       users: {
+        'POST /api/users [Auth, Admin]': 'Crear usuario sin cambiar la sesión del administrador',
         'GET /api/users [Auth, Admin]': 'Listar todos los usuarios',
         'GET /api/users/:id [Auth, Admin]': 'Obtener usuario por ID',
         'PUT /api/users/:id [Auth, Admin]': 'Editar usuario (name, email, role)',

@@ -43,9 +43,9 @@ Todos bajo `/api`. Errores siempre como `{ "message": "..." }` en español.
 
 | Método | Ruta | Auth | Descripción |
 | ------ | ---- | :--: | ----------- |
-| POST | `/auth/login` | no | `{ email, password }` → `{ token, user }` |
-| POST | `/auth/register` | no | `{ firstName, lastName, email, password }` → `{ token, user }` |
-| POST | `/signup` | no | Alias de `/auth/register` (requisito Etapa 2) |
+| POST | `/signin` | no | `{ email, password }` → `{ token, user }` |
+| POST | `/signup` | no | `{ firstName, lastName, email, password }` → `{ token, user }` |
+| POST | `/signup` | no | Alias de `/signup` (requisito Etapa 2) |
 | POST | `/auth/logout` | no | Borra la cookie de sesión (204) |
 | GET | `/users/me` | sí | Datos del usuario del token, **sin contraseña ni hash** |
 
@@ -91,7 +91,7 @@ Un admin no puede quitarse su propio rol ni eliminar su propia cuenta.
 ## Reglas clave
 
 - **Roles:** un usuario es admin si su correo está en `ADMIN_EMAILS` (`src/models/user.js`) o si tiene `role: 'admin'`. El método `user.isAdmin()` es la referencia autoritativa.
-- **Registro:** las cuentas se crean por API (`/auth/register` o `/signup`); nacen como `'user'` salvo que su correo esté en `ADMIN_EMAILS`. Contraseñas siempre con hash bcrypt; nunca salen en ninguna respuesta.
+- **Registro:** las cuentas se crean por API (`/signup` o `/signup`); nacen como `'user'` salvo que su correo esté en `ADMIN_EMAILS`. Contraseñas siempre con hash bcrypt; nunca salen en ninguna respuesta.
 - **Visibilidad por dueño:** en `/articles` el filtro está en el controlador; un usuario normal no puede ver ni tocar artículos de otros (responden `404`).
 - **Errores:** todos se registran en `logs/error.log` (los 4xx como `warn`, los 5xx como `error`), con método, ruta, estado y cuerpo (contraseñas enmascaradas). `logs/request.log` guarda todo lo demás.
 
@@ -118,3 +118,7 @@ npm run lint             # ESLint
 - nginx como proxy inverso con `client_max_body_size 25m;`, SSL con Certbot, PM2 (`pm2 start ecosystem.config.js`).
 - Instalar dependencias en el servidor con `npm ci --omit=dev`.
 - Sin `GCS_BUCKET_NAME` todo funciona salvo la subida de fotos (503).
+
+## Auditoría de despliegue
+
+Ver [DEPLOY_GOOGLE_CLOUD.md](DEPLOY_GOOGLE_CLOUD.md). `npm run test:integration` ejecuta HTTP y MongoDB aislado (requiere mongod), sin tocar la base configurada en .env.

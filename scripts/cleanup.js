@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const logger = require('../src/config/logger');
-const connectDb = require('../src/config/db');
+const { connectDb } = require('../src/config/db');
 const User = require('../src/models/user');
 const Article = require('../src/models/article');
 const { deleteImage } = require('../src/utils/imageStorage');
@@ -61,6 +61,6 @@ cleanup()
   })
   .finally(async () => {
     await mongoose.disconnect();
-    logger.on('finish', () => process.exit());
-    logger.end();
+    logger.logger.on('finish', () => process.exit());
+    logger.logger.end();
   });

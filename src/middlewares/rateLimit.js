@@ -30,7 +30,7 @@ const authLimiter = createRateLimiter('Auth', {
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 15, // límite de requests por ventana
   message: { message: 'Demasiados intentos. Inténtalo de nuevo en 15 minutos.' },
-  skip: (req) => !req.path.startsWith('/api/auth'),
+
 });
 
 // Limitar requests generales a la API (excluyendo auth que ya tiene su límite).
@@ -39,7 +39,7 @@ const apiLimiter = createRateLimiter('API', {
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 100,
   message: { message: 'Demasiadas peticiones. Inténtalo de nuevo en 15 minutos.' },
-  skip: (req) => req.path.startsWith('/api/auth') || req.path.includes('/static'),
+  skip: (req) => /^\/api\/(?:auth(?:\/|$)|signin$|signup$)/.test(req.originalUrl.split('?')[0]),
 });
 
 module.exports = { authLimiter, apiLimiter };

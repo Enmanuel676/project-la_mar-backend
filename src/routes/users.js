@@ -2,6 +2,9 @@ const router = require('express').Router();
 const { celebrate, Joi, Segments } = require('celebrate');
 const validator = require('validator');
 const auth = require('../middlewares/auth');
+const attachUser = require('../middlewares/attachUser');
+const { register } = require('../controllers/auth');
+const { validateRegister } = require('../middlewares/validation');
 const isAdmin = require('../middlewares/isAdmin');
 const {
   getUsers,
@@ -14,6 +17,7 @@ const {
 
 // Todas las rutas de este archivo requieren autenticación.
 router.use(auth);
+router.use(attachUser);
 
 // Datos del usuario autenticado: solo necesita token, no ser admin (cualquiera puede
 // consultar su propia cuenta). Se declara ANTES de isAdmin porque Express procesa
@@ -49,6 +53,7 @@ const idParam = Joi.object().keys({
 
 // Listar todos los usuarios
 router.get('/', getUsers);
+router.post('/', validateRegister, register);
 
 // Obtener un usuario por ID
 router.get('/:id', validate({ [Segments.PARAMS]: idParam }), getUser);
@@ -59,7 +64,8 @@ router.put('/:id', validate({
   [Segments.BODY]: Joi.object().keys({
     name: Joi.string().trim().min(1).max(100)
       .label('nombre'),
-    email: Joi.string().custom(isEmail).label('correo'),
+    email: Joi.string().trim().lowercase().custom(isEmail)
+      .label('correo'),
     role: Joi.string().valid('admin', 'user').label('rol'),
   }),
 }), updateUser);

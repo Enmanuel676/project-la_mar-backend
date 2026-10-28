@@ -1,23 +1,19 @@
 const User = require('../models/user');
+const ApiError = require('../utils/ApiError');
 
-// Middleware que adjunta el usuario completo a req (como req.fullUser) si está autenticado.
-// A diferencia de isAdmin, no bloquea el paso: sirve para que los controladores sepan
-// si el usuario es admin sin impedir el acceso a usuarios normales.
+// Un JWT no basta si la cuenta se eliminó o no puede consultarse.
 module.exports = async (req, res, next) => {
   try {
-    if (req.user && req.user._id) {
-      const user = await User.findById(req.user._id);
-      if (user) {
-        req.fullUser = user;
-        // Si es admin, también lo ponemos en req.adminUser para que getOwnerFilter funcione
-        if (user.isAdmin()) {
-          req.adminUser = user;
-        }
-      }
+    if (!req.user || !req.user._id) return next(new ApiError(401, 'Se requiere iniciar sesión.'));
+    const user = await User.findById(req.user._id);
+    if (!user) return next(new ApiError(401, 'La cuenta ya no existe. Inicia sesión de nuevo.'));
+    if ((req.user.sessionVersion || 0) !== (user.sessionVersion || 0)) {
+      return next(new ApiError(401, 'La contraseña ha cambiado. Inicia sesión de nuevo.'));
     }
-    next();
+    req.fullUser = user;
+    if (user.isAdmin()) req.adminUser = user;
+    return next();
   } catch (err) {
-    // Si falla la carga del usuario, seguimos adelante: el controlador decidirá
-    next();
+    return next(err);
   }
 };

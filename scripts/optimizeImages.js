@@ -1,7 +1,7 @@
 // Script de terminal: el informe se lee en pantalla con console.log, también en producción,
 // donde el logger no escribe en la consola (.eslintrc permite console en scripts/).
 const mongoose = require('mongoose');
-const connectDb = require('../src/config/db');
+const { connectDb } = require('../src/config/db');
 const { getBucket } = require('../src/config/storage');
 const Article = require('../src/models/article');
 const { optimizeImage } = require('../src/utils/optimizeImage');

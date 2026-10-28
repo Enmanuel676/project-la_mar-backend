@@ -31,7 +31,7 @@ function getEnvVar(name, required = true, validator = null) {
   }
 
   if (validator && value && !validator(value)) {
-    throw new Error(`La variable ${name} tiene un valor inválido: ${value}`);
+    throw new Error(`La variable ${name} tiene un valor inválido.`);
   }
 
   return value;
@@ -70,16 +70,18 @@ if (!isProduction && jwtSecret.length < 32 && !DEV_DEFAULTS.JWT_SECRET.includes(
 const mongoUri = getEnvVar('MONGODB_URI', true, (uri) => uri.startsWith('mongodb://') || uri.startsWith('mongodb+srv://'));
 
 // Validar PORT
-const port = Number(getEnvVar('PORT', false)) || 3000;
-if (port < 1024 || port > 65535) {
+const port = Number(getEnvVar('PORT', false) || 3000);
+if (!Number.isInteger(port) || port < 1024 || port > 65535) {
   throw new Error('PORT debe ser un número entre 1024 y 65535');
 }
 
 // Validar TRASH_RETENTION_DAYS
-const trashRetentionDays = Number(getEnvVar('TRASH_RETENTION_DAYS', false)) || 30;
-if (trashRetentionDays < 1 || trashRetentionDays > 365) {
-  console.warn('⚠ Advertencia: TRASH_RETENTION_DAYS debería estar entre 1 y 365 días');
+const trashRetentionDays = Number(getEnvVar('TRASH_RETENTION_DAYS', false) || 30);
+if (!Number.isInteger(trashRetentionDays) || trashRetentionDays < 1 || trashRetentionDays > 365) {
+  throw new Error('TRASH_RETENTION_DAYS debe ser un entero entre 1 y 365.');
 }
+const host = getEnvVar('HOST', false) || '127.0.0.1';
+const trustProxy = getEnvVar('TRUST_PROXY', false) || 'loopback';
 
 // Validar JWT_EXPIRES_IN
 const jwtExpiresIn = getEnvVar('JWT_EXPIRES_IN', false) || '12h';
@@ -120,7 +122,7 @@ if (!isProduction) {
   console.log('='.repeat(60));
   console.log(`  Entorno: ${isProduction ? 'Producción' : 'Desarrollo'}`);
   console.log(`  Puerto: ${port}`);
-  console.log(`  MongoDB: ${mongoUri}`);
+  console.log('  MongoDB: configurado');
   console.log(`  JWT Secret: ${jwtSecret.length > 0 ? `Configurado (${jwtSecret.length} chars)` : 'NO CONFIGURADO'}`);
   console.log(`  JWT Expires: ${jwtExpiresIn}`);
   console.log(`  Admin Emails: ${adminEmails.length > 0 ? adminEmails.join(', ') : 'ninguno'}`);
@@ -132,7 +134,10 @@ if (!isProduction) {
 
 module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
+  logLevel: process.env.LOG_LEVEL || 'info',
   port,
+  host,
+  trustProxy,
   mongoUri,
   jwtSecret,
   jwtExpiresIn,

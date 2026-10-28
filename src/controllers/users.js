@@ -141,6 +141,7 @@ async function changePassword(req, res, next) {
 
     const hash = await bcrypt.hash(password, 10);
     user.password = hash;
+    user.sessionVersion = (user.sessionVersion || 0) + 1;
     await user.save();
 
     logger.info(`Contraseña cambiada para: ${user.email} por ${req.adminUser.email}`, {

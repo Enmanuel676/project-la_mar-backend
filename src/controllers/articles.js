@@ -18,16 +18,6 @@ function getOwnerFilter(req) {
   if (user && user.isAdmin && user.isAdmin()) {
     return {};
   }
-  // tambien verificar por el array de correos admin
-  if (
-    user
-    && user.email
-    && ['darelisbatistag@gmail.com', 'enmanuel676hd@gmail.com'].includes(
-      user.email.toLowerCase().trim(),
-    )
-  ) {
-    return {};
-  }
   // Usuario normal: solo ve sus propios artículos
   return { ownerId: req.user._id };
 }

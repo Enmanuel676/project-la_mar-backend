@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema({
   },
   // select: false: el hash nunca sale en una consulta normal. Para comprobar el login hay
   // que pedirlo a propósito con .select('+password').
+  sessionVersion: { type: Number, default: 0 },
   password: {
     type: String,
     required: true,
@@ -56,7 +57,7 @@ userSchema.statics.findByCredentials = async function findByCredentials(
   email,
   password,
 ) {
-  const user = await this.findOne({ email }).select('+password');
+  const user = await this.findOne({ email: email.trim().toLowerCase() }).select('+password');
   const matches = await bcrypt.compare(
     password,
     user ? user.password : DUMMY_HASH,
@@ -81,7 +82,9 @@ userSchema.methods.isAdmin = function isAdmin() {
 userSchema.set('toJSON', {
   transform(_doc, ret) {
     const json = { ...ret };
+    json.id = ret._id.toString();
     delete json.password;
+    delete json.sessionVersion;
     delete json.__v;
     // Añadir campo calculado isAdmin
     json.isAdmin = ADMIN_EMAILS.includes(json.email) || json.role === 'admin';

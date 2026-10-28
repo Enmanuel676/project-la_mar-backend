@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const env = require('../src/config/env');
 const logger = require('../src/config/logger');
-const connectDb = require('../src/config/db');
+const { connectDb } = require('../src/config/db');
 const User = require('../src/models/user');
 
 /* ==================================================================
@@ -17,7 +17,7 @@ const User = require('../src/models/user');
  * - Si el correo no existe, crea la cuenta (contraseña guardada con bcrypt).
  * - Si ya existe, actualiza su nombre y su contraseña.
  *
- * En desarrollo, usa el panel para registrar administradores (POST /auth/signup).
+ * Los administradores posteriores se crean desde una sesión de administrador.
  * ================================================================== */
 
 // Valores por defecto solo para probar en local; coinciden con los del panel con datos de prueba.
@@ -48,7 +48,9 @@ async function createAdmin() {
   // para crear el admin y para restablecerla.
   await User.findOneAndUpdate(
     { email },
-    { email, password: hash, name },
+    {
+      email, password: hash, name, role: 'admin',
+    },
     { upsert: true, runValidators: true, setDefaultsOnInsert: true },
   );
   logger.info(`Administrador listo: ${email} (${name})`);
@@ -63,6 +65,6 @@ createAdmin()
     await mongoose.disconnect();
     // Los archivos de registro de winston mantienen vivo el proceso: se cierran (después de
     // escribir lo pendiente) y entonces se sale con el código que corresponda.
-    logger.on('finish', () => process.exit());
-    logger.end();
+    logger.logger.on('finish', () => process.exit());
+    logger.logger.end();
   });

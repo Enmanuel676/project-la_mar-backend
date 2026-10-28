@@ -35,7 +35,9 @@ const isMongoId = (value, helpers) => (
 // { "email": { "$ne": null } } y Mongo lo trataría como un operador, no como un correo.
 const validateLogin = validate({
   [Segments.BODY]: Joi.object().keys({
-    email: Joi.string().required().custom(isEmail).label('correo'),
+    email: Joi.string().trim().lowercase().required()
+      .custom(isEmail)
+      .label('correo'),
     password: Joi.string().required().max(128).label('contraseña'),
   }),
 });
@@ -52,7 +54,9 @@ const validateRegister = validate({
     lastName: Joi.string().trim().min(1).max(50)
       .required()
       .label('apellido'),
-    email: Joi.string().required().custom(isEmail).label('correo'),
+    email: Joi.string().trim().lowercase().required()
+      .custom(isEmail)
+      .label('correo'),
     password: Joi.string().required().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH)
       .label('contraseña'),
   }),

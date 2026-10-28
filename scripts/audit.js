@@ -141,7 +141,7 @@ try {
 // Verificar si MongoDB está corriendo
 try {
   // Intentar conectar a MongoDB
-  logInfo(`URI configurada: ${env.mongoUri}`);
+  logInfo('URI de MongoDB configurada');
 
   // Intentar conexión rápida
   try {

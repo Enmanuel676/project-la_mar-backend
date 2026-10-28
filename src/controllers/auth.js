@@ -29,7 +29,7 @@ async function login(req, res, next) {
 
     // En el token solo va el id: lo demás se puede consultar, y así no queda desfasado
     // si cambia el nombre o el correo.
-    const token = jwt.sign({ _id: user._id }, env.jwtSecret, { algorithm: 'HS256', expiresIn: env.jwtExpiresIn });
+    const token = jwt.sign({ _id: user._id, sessionVersion: user.sessionVersion || 0 }, env.jwtSecret, { algorithm: 'HS256', expiresIn: env.jwtExpiresIn });
     // Además del cuerpo, el token viaja en una cookie: así entrar a la API directamente
     // (escribir la URL en el navegador) funciona sin pegar cabeceras.
     setSessionCookie(req, res, token);
@@ -38,6 +38,7 @@ async function login(req, res, next) {
     res.send({
       token,
       user: {
+        _id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
@@ -54,6 +55,11 @@ async function register(req, res, next) {
     const {
       firstName, lastName, email, password,
     } = req.body;
+
+    // Una dirección reservada no prueba identidad: el primer admin se crea con seed:admin.
+    if (!req.adminUser && User.isAdminEmail(email)) {
+      throw new ApiError(403, 'Este correo está reservado. Solicita la cuenta a un administrador.');
+    }
 
     // Comprobar si el correo ya está registrado
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
@@ -95,12 +101,19 @@ async function register(req, res, next) {
       await user.save();
     }
 
+    // Un administrador crea cuentas sin cambiar su propia sesión ni su cookie.
+    if (req.adminUser) {
+      res.status(201).send(user.toJSON());
+      return;
+    }
+
     // Generar token y devolver la sesión (igual que el login)
-    const token = jwt.sign({ _id: user._id }, env.jwtSecret, { algorithm: 'HS256', expiresIn: env.jwtExpiresIn });
+    const token = jwt.sign({ _id: user._id, sessionVersion: user.sessionVersion || 0 }, env.jwtSecret, { algorithm: 'HS256', expiresIn: env.jwtExpiresIn });
     setSessionCookie(req, res, token);
     res.status(201).send({
       token,
       user: {
+        _id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,

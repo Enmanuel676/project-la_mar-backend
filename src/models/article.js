@@ -45,7 +45,7 @@ articleSchema.set('toJSON', {
     const json = { ...ret };
     json.id = ret._id.toString();
     json.collection = ret.collectionName;
-    json.ownerId = ret.ownerId ? ret.ownerId.toString() : null;
+    json.ownerId = ret.ownerId ? (ret.ownerId._id || ret.ownerId).toString() : null;
     // Incluir información del owner si está populado
     if (ret.ownerId && ret.ownerId.name) {
       json.ownerName = ret.ownerId.name;

@@ -427,7 +427,7 @@ describe('Backend Authentication System', () => {
       expect(next.calledOnce).to.be.true;
     });
 
-    it('should call next even if user not found', async () => {
+    it('should deny a deleted account', async () => {
       const { req, res, next } = createMockReqRes();
       req.user = { _id: 'test-user-id' };
 
@@ -437,23 +437,26 @@ describe('Backend Authentication System', () => {
 
       expect(req.fullUser).to.be.null;
       expect(next.calledOnce).to.be.true;
+      expect(next.firstCall.args[0].statusCode).to.equal(401);
     });
 
-    it('should call next even if req.user is not set', async () => {
+    it('should deny a missing identity', async () => {
       const { req, res, next } = createMockReqRes();
 
       await attachUserMiddleware(req, res, next);
 
       expect(next.calledOnce).to.be.true;
+      expect(next.firstCall.args[0].statusCode).to.equal(401);
     });
 
-    it('should call next even if req.user._id is not set', async () => {
+    it('should deny a missing user ID', async () => {
       const { req, res, next } = createMockReqRes();
       req.user = {};
 
       await attachUserMiddleware(req, res, next);
 
       expect(next.calledOnce).to.be.true;
+      expect(next.firstCall.args[0].statusCode).to.equal(401);
     });
 
     it('should handle database errors gracefully', async () => {
@@ -620,31 +623,12 @@ describe('Backend Authentication System', () => {
       expect(next.firstCall.args[0]).to.be.instanceOf(Error);
     });
 
-    it('should assign admin role if email is in ADMIN_EMAILS', async () => {
+    it('should reject public signup with a reserved administrator email', async () => {
       const { req, res, next } = createMockReqRes();
-      req.body = {
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'darelisbatistag@gmail.com',
-        password: 'password123',
-      };
-
-      findOneStub.resolves(null);
-      const newUser = {
-        _id: 'new-admin-id',
-        email: 'darelisbatistag@gmail.com',
-        name: 'Admin User',
-        role: 'user',
-        password: 'hashed-password',
-        isAdmin() { return true; },
-        save: sinon.stub().resolves(),
-      };
-      createStub.resolves(newUser);
-
+      req.body = { firstName: 'Admin', lastName: 'User', email: 'darelisbatistag@gmail.com', password: 'password123' };
       await require('../src/controllers/auth').register(req, res, next);
-
-      expect(newUser.save.calledOnce).to.be.true;
-      expect(newUser.role).to.equal('admin');
+      expect(next.firstCall.args[0].statusCode).to.equal(403);
+      expect(res.send.called).to.be.false;
     });
   });
 
