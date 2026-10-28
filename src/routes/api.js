@@ -9,9 +9,8 @@ router.get('/', (req, res) => {
     baseUrl: '/api',
     endpoints: {
       auth: {
-        'POST /api/auth/login': 'Iniciar sesión - { email, password } → { token, user }',
-        'POST /api/auth/register': 'Registrar usuario - { firstName, lastName, email, password } → { token, user }',
-        'POST /api/signup': 'Alias de /auth/register (Requisito Etapa 2)',
+        'POST /api/auth/signin': 'Iniciar sesión - { email, password } → { token, user }',
+        'POST /api/auth/signup': 'Registrar usuario - { firstName, lastName, email, password } → { token, user }',
         'POST /api/auth/logout': 'Cerrar sesión (borra cookie)',
         'GET /api/users/me [Auth]': 'Datos del usuario autenticado (sin contraseña)',
       },

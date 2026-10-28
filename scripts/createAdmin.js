@@ -17,7 +17,7 @@ const User = require('../src/models/user');
  * - Si el correo no existe, crea la cuenta (contraseña guardada con bcrypt).
  * - Si ya existe, actualiza su nombre y su contraseña.
  *
- * En desarrollo, usa el panel para registrar administradores (POST /auth/register o /api/signup).
+ * En desarrollo, usa el panel para registrar administradores (POST /auth/signup).
  * ================================================================== */
 
 // Valores por defecto solo para probar en local; coinciden con los del panel con datos de prueba.
